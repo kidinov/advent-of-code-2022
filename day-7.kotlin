@@ -1,0 +1,85 @@
+open class Fl(val size: Long)
+class Dir(val name: String, val parent: Dir?, val files: MutableList<Fl>) : Fl(files.sumOf { it.size }) {
+    override fun toString() = "Dir(name='$name')"
+}
+
+fun main() {
+    val nav = File("advert_input.txt").readText().lines()
+    val root = buildTheTree(nav)
+    val spaceNeededToFreeUp = 30000000 - (70000000 - root.countSize())
+    val dirs = dirsSizes(root).sortedBy { it.second }
+    for (ind in dirs.indices) {
+        if (spaceNeededToFreeUp <= dirs[ind].second) {
+            println(dirs[ind].second)
+            break
+        }
+    }
+}
+
+private fun dirsSizes(root: Dir): List<Pair<Dir, Long>> {
+    val result = mutableListOf<Pair<Dir, Long>>()
+    val q = LinkedList<Dir>()
+    q.push(root)
+
+    while (q.isNotEmpty()) {
+        q.pop().files.forEach {
+            if (it is Dir) {
+                result.add(it to it.countSize())
+                q.push(it)
+            }
+        }
+    }
+    return result
+}
+
+private fun Dir.countSize(): Long {
+    val q = LinkedList<Dir>()
+    q.push(this)
+    var sum = 0L
+    while (q.isNotEmpty()) {
+        q.pop().files.forEach {
+            if (it is Dir) q.push(it)
+            else sum += it.size
+        }
+    }
+
+    return sum
+}
+
+private fun buildTheTree(nav: List<String>): Dir {
+    val root = Dir("/", null, mutableListOf())
+
+    var curDir = root
+    var lineNumber = 0
+    while (lineNumber < nav.size) {
+        val line = nav[lineNumber++]
+        if (line.startsWith("$")) {
+            val parts = line.split(" ")
+            if (parts[1] == "cd") {
+                val dirName = line.split(" ")[2]
+                curDir = when (dirName) {
+                    "/" -> root
+                    ".." -> curDir.parent!!
+                    else -> curDir.files.filterIsInstance<Dir>().find { it.name == dirName }!!
+                }
+            } else if (parts[1] == "ls") {
+                while (lineNumber < nav.size) {
+                    val insideFolderLine = nav[lineNumber++]
+                    if (insideFolderLine.startsWith("$")) {
+                        lineNumber--
+                        break
+                    }
+                    if (insideFolderLine.startsWith("dir")) {
+                        curDir.files.add(Dir(insideFolderLine.split(" ")[1], curDir, mutableListOf()))
+                    } else {
+                        curDir.files.add(
+                            Fl(insideFolderLine.split(" ")[0].toLong())
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    return root
+}
