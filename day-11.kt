@@ -23,24 +23,21 @@ fun main() {
         .reduce { a, b -> a * b })
 }
 
-private fun parseInput(): List<Monkey> {
-    val monkeys = File("advert_input.txt").readLines().chunked(7).map {
-        val operation = it[2].trim().substring(17).trim()
-        Monkey(
-            name = it[0][7].toString(),
-            items = it[1].trim().substring(16).split(", ").map { it.toLong() }.toMutableList(),
-            operation = if (operation.contains("*")) {
-                if (operation.split(" * ").all { it == "old" }) Operation.MultiplyOld
-                else Operation.Multiply(operation.split(" * ")[1].toInt())
-            } else {
-                if (operation.split(" + ").all { it == "old" }) Operation.AddOld
-                else Operation.Add(operation.split(" + ")[1].toInt())
-            },
-            testDivBy = it[3].trim().substring(19).toLong(),
-            moveTo = it[4].trim().substring(25) to it[5].trim().substring(26)
-        )
-    }
-    return monkeys
+private fun parseInput() = File("advert_input.txt").readLines().chunked(7).map {
+    val operation = it[2].trim().substring(17).trim()
+    Monkey(
+        name = it[0][7].toString(),
+        items = it[1].trim().substring(16).split(", ").map { it.toLong() }.toMutableList(),
+        operation = if (operation.contains("*")) {
+            if (operation.split(" * ").all { it == "old" }) Operation.MultiplyOld
+            else Operation.Multiply(operation.split(" * ")[1].toInt())
+        } else {
+            if (operation.split(" + ").all { it == "old" }) Operation.AddOld
+            else Operation.Add(operation.split(" + ")[1].toInt())
+        },
+        testDivBy = it[3].trim().substring(19).toLong(),
+        moveTo = it[4].trim().substring(25) to it[5].trim().substring(26)
+    )
 }
 
 private fun doMonkeyBusiness(monkeys: List<Monkey>) {
@@ -54,11 +51,12 @@ private fun doMonkeyBusiness(monkeys: List<Monkey>) {
                     is Operation.Multiply -> item * oper.to
                     Operation.MultiplyOld -> item * item
                 } % commonDivisor
-                if (newLevel % monkey.testDivBy == 0L) {
-                    monkeys.find { it.name == monkey.moveTo.first }!!.items.add(newLevel)
-                } else {
-                    monkeys.find { it.name == monkey.moveTo.second }!!.items.add(newLevel)
-                }
+                monkeys.find {
+                    it.name == if (newLevel % monkey.testDivBy == 0L)
+                        monkey.moveTo.first
+                    else
+                        monkey.moveTo.second
+                }!!.items.add(newLevel)
                 monkey.inspectionNumber++
             }
             monkey.items.clear()
